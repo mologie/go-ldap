@@ -329,32 +329,31 @@ func DecodeControl(packet *ber.Packet) Control {
 
 		for _, child := range sequence.Children {
 			if child.Tag == 0 {
-				//Warning
+				// warning
 				warningPacket := child.Children[0]
 				packet := ber.DecodePacket(warningPacket.Data.Bytes())
-				val, ok := packet.Value.(int64)
-				if ok {
-					if warningPacket.Tag == 0 {
-						//timeBeforeExpiration
-						c.Expire = val
-						warningPacket.Value = c.Expire
-					} else if warningPacket.Tag == 1 {
-						//graceAuthNsRemaining
-						c.Grace = val
-						warningPacket.Value = c.Grace
+				if packet != nil {
+					val, ok := packet.Value.(int64)
+					if ok {
+						if warningPacket.Tag == 0 {
+							//timeBeforeExpiration
+							c.Expire = val
+							warningPacket.Value = c.Expire
+						} else if warningPacket.Tag == 1 {
+							//graceAuthNsRemaining
+							c.Grace = val
+							warningPacket.Value = c.Grace
+						}
 					}
 				}
 			} else if child.Tag == 1 {
-				// Error
-				packet := ber.DecodePacket(child.Data.Bytes())
-				val, ok := packet.Value.(int8)
-				if !ok {
-					// what to do?
-					val = -1
+				// error
+				c.Error = -1
+				if len(child.Data.Bytes()) == 1 {
+					c.Error = int8(child.Data.Bytes()[0])
+					c.ErrorString = BeheraPasswordPolicyErrorMap[c.Error]
 				}
-				c.Error = val
 				child.Value = c.Error
-				c.ErrorString = BeheraPasswordPolicyErrorMap[c.Error]
 			}
 		}
 		return c

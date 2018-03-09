@@ -214,30 +214,29 @@ func addControlDescriptions(packet *ber.Packet) {
 			sequence := value.Children[0]
 			for _, child := range sequence.Children {
 				if child.Tag == 0 {
-					//Warning
+					// warning
 					warningPacket := child.Children[0]
-					packet := ber.DecodePacket(warningPacket.Data.Bytes())
-					val, ok := packet.Value.(int64)
-					if ok {
-						if warningPacket.Tag == 0 {
-							//timeBeforeExpiration
-							value.Description += " (TimeBeforeExpiration)"
-							warningPacket.Value = val
-						} else if warningPacket.Tag == 1 {
-							//graceAuthNsRemaining
-							value.Description += " (GraceAuthNsRemaining)"
-							warningPacket.Value = val
+					if packet := ber.DecodePacket(warningPacket.Data.Bytes()); packet != nil {
+						val, ok := packet.Value.(int64)
+						if ok {
+							if warningPacket.Tag == 0 {
+								//timeBeforeExpiration
+								value.Description += " (TimeBeforeExpiration)"
+								warningPacket.Value = val
+							} else if warningPacket.Tag == 1 {
+								//graceAuthNsRemaining
+								value.Description += " (GraceAuthNsRemaining)"
+								warningPacket.Value = val
+							}
 						}
 					}
 				} else if child.Tag == 1 {
-					// Error
-					packet := ber.DecodePacket(child.Data.Bytes())
-					val, ok := packet.Value.(int8)
-					if !ok {
-						val = -1
-					}
+					// error
+					child.Value = -1
 					child.Description = "Error"
-					child.Value = val
+					if len(child.Data.Bytes()) == 1 {
+						child.Value = int8(child.Data.Bytes()[0])
+					}
 				}
 			}
 		}
